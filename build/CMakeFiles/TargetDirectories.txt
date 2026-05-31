@@ -1,0 +1,3 @@
+C:/programming/tudelft/IP2new/mazesolver-v2/build/CMakeFiles/proj.dir
+C:/programming/tudelft/IP2new/mazesolver-v2/build/CMakeFiles/edit_cache.dir
+C:/programming/tudelft/IP2new/mazesolver-v2/build/CMakeFiles/rebuild_cache.dir

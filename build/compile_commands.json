@@ -1,0 +1,8 @@
+[
+{
+  "directory": "C:/programming/tudelft/IP2new/mazesolver-v2/build",
+  "command": "C:\\msys64\\mingw64\\bin\\g++.exe -DCSFML_STATIC -DSFML_STATIC -IC:/programming/libraries/CSFML-v1/install-debug/include -g -o CMakeFiles\\proj.dir\\main.c.obj -c C:\\programming\\tudelft\\IP2new\\mazesolver-v2\\main.c",
+  "file": "C:/programming/tudelft/IP2new/mazesolver-v2/main.c",
+  "output": "C:/programming/tudelft/IP2new/mazesolver-v2/build/CMakeFiles/proj.dir/main.c.obj"
+}
+]

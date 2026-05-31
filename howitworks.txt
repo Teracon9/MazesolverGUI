@@ -1,0 +1,14 @@
+Uses the SFML library installed from git. To install SFML from git:
+init library
+fetch GitHub sfml
+cmake build with label -DBUILD_SHARED_LIBS=off
+cmake --build build
+cmake --install build --prefix install
+
+this can also be done with -DCMAKE_BUILD_TYPE=Debug or Release, then you make separate build-release, build-debug, install-release and install-debug folders
+
+Then also make the csfml GitHub repo, using the smfl libs as source
+
+Then use this project to link and include these files
+
+the cmakelists of this project can be modified such that it includes the -d debug libraries instead of the release ones. Just add -d suffix on the libs.
