@@ -10,6 +10,24 @@
 #define PATHMAXLENGTH 100
 #define MAXAMOUNTSTATIONS 10
 
+#define BLK "\033[30m"
+#define RED "\033[31m"
+#define GRN "\033[32m"
+#define YEL "\033[33m"
+#define BLU "\033[34m"
+#define MAG "\033[35m"
+#define CYN "\033[36m"
+#define WHT "\033[37m"
+
+#define BBLK "\033[40m"
+#define BRED "\033[41m"
+#define BGRN "\033[42m"
+#define BYEL "\033[43m"
+#define BBLU "\033[44m"
+#define BMAG "\033[45m"
+#define BCYN "\033[46m"
+#define BWHT "\033[47m"
+
 float mazeRotationAngle = 15.0f;
 float mazeTiltRatio = 0.7f;
 float mazeScale = 1.4f;
@@ -108,11 +126,11 @@ int main(void)
 }
 
 void getuserinput(){
-    printf("________HIGHRESROBOTCONTROLLER_________\n\n");
-    printf("Enter the operatingmode (1 for multiple station visits, 2 for cover whole map, 3 for testmode) then press enter\n");
+    printf(GRN"________HIGHRESROBOTCONTROLLER_________\n\n"WHT);
+    printf(CYN"Enter the operatingmode (1 for multiple station visits, 2 for cover whole map, 3 for testmode) then press enter\n"WHT);
     scanf("%i", &operatingmode);
     if(operatingmode<1||operatingmode>3){
-        printf("ERROR: Invalid operatingmode");
+        printf(RED"ERROR: Invalid operatingmode");
         error = 1;
         return;
     }
@@ -123,21 +141,21 @@ void getuserinput(){
             int stationnumber;
         while(1){
             if(amountofstations == 0){
-                printf("Enter start station, then press enter \n");
+                printf(CYN"Enter start station, then press enter \n"WHT);
                 scanf("%i", &stationnumber);
                 stations[amountofstations] = stationnumber;
                 amountofstations++;
             }else{
-          printf("Enter a number between 0 and 12 to add station %i and then press enter. Enter 0  to continue \n",amountofstations);  
+          printf(CYN"Enter a number between 0 and 12 to add station %i and then press enter. Enter 0  to continue \n"WHT,amountofstations);  
           scanf("%i", &stationnumber);
           if(stationnumber<0||stationnumber>12||stationnumber==stations[amountofstations-1]){
-            printf("ERROR: Invalid station number");
+            printf(RED"ERROR: Invalid station number");
             error = 1;
             break;      
 
           }
           if(stationnumber==0){
-              printf("stations added:\n-");
+              printf(GRN"stations added:\n-"WHT);
                 for(int i = 0; i<amountofstations; i++){
                     printf("%i-", stations[i]);
                 }
@@ -150,9 +168,9 @@ void getuserinput(){
             }
         }
     }else if(operatingmode==2){
-        printf("\noperatingmode 2 selected\n");
+        printf(GRN"\noperatingmode 2 selected\n"WHT);
     }else if(operatingmode==3){
-        printf("\noperatingmode 3 selected\n");
+        printf(GRN"\noperatingmode 3 selected\n"WHT);
     }
 }
 
