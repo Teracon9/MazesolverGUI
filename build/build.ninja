@@ -54,7 +54,7 @@ build CMakeFiles/proj.dir/main.c.obj: CXX_COMPILER__proj_unscanned_Debug C$:/pro
   DEFINES = -DCSFML_STATIC -DSFML_STATIC
   DEP_FILE = CMakeFiles\proj.dir\main.c.obj.d
   FLAGS = -g
-  INCLUDES = -IC:/programming/libraries/CSFML-v1/install-debug/include
+  INCLUDES = -IC:/programming/libraries/CSFML-v1/install-release/include
   OBJECT_DIR = CMakeFiles\proj.dir
   OBJECT_FILE_DIR = CMakeFiles\proj.dir
   TARGET_SUPPORT_DIR = CMakeFiles\proj.dir
@@ -70,8 +70,8 @@ build CMakeFiles/proj.dir/main.c.obj: CXX_COMPILER__proj_unscanned_Debug C$:/pro
 build C$:/programming/tudelft/IP2new/mazesolver-v2/bin/proj.exe: CXX_EXECUTABLE_LINKER__proj_Debug CMakeFiles/proj.dir/main.c.obj
   CONFIG = Debug
   FLAGS = -g
-  LINK_LIBRARIES = -lcsfml-graphics-s-d  -lcsfml-window-s-d  -lcsfml-system-s-d  -lsfml-graphics-s-d  -lsfml-window-s-d  -lsfml-system-s-d  -lopengl32  -lwinmm  -lgdi32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
-  LINK_PATH = -LC:/programming/libraries/CSFML-v1/install-debug/lib   -LC:/programming/libraries/SFML-v1/install-debug/lib
+  LINK_LIBRARIES = -lcsfml-graphics-s  -lcsfml-window-s  -lcsfml-system-s  -lsfml-graphics-s  -lsfml-window-s  -lsfml-system-s  -lopengl32  -lwinmm  -lgdi32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  LINK_PATH = -LC:/programming/libraries/CSFML-v1/install-release/lib   -LC:/programming/libraries/SFML-v1/install-release/lib
   OBJECT_DIR = CMakeFiles\proj.dir
   POST_BUILD = cd .
   PRE_LINK = cd .
