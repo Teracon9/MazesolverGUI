@@ -3,12 +3,16 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
+#include <Windows.h>
 
 #define SCREENWIDTH 1600
 #define SCREENHEIGHT 900
 #define PI 3.14159265f
 #define PATHMAXLENGTH 100
 #define MAXAMOUNTSTATIONS 10
+
+#define COMPORT "COM2"
+#define BAUDRATE CBR_9600
 
 #define BLK "\033[30m"
 #define RED "\033[31m"
@@ -42,6 +46,9 @@ struct Maze {
     int grid[13][13];
 };
 int error = 0;
+    int nextpathnumber=0;
+
+int robotdirection = 0;
 
 void setupmazegui();
 void updatemazegui();
@@ -52,22 +59,49 @@ sfVector2f transformpos(float, float);
 sfVector2f transformrect(int, int);
 void clearpath();
 void getuserinput();
+int getstationx(int);
+int getstationy(int);
+void move(int,int);
+void checkresponse();
+void directionCheck();
 
+int writeByte(HANDLE hSerial, char* buffWrite);
+int readByte(HANDLE hSerial, char* buffWrite);
+void initSio(HANDLE hSerial);
+
+char transmittedByte;
 
 int path[PATHMAXLENGTH][2] = {{0}};
+int pathendpoint = 0;
 int stations[MAXAMOUNTSTATIONS] = {0};
+// struct Maze maze = {.grid = {
+//                         {-1, -1, -1, -1, 0, -1, 0, -1, 0, -1, -1, -1, -1},
+//                         {-1, -1, -1, -1, 0, -1, 0, -1, 0, -1, -1, -1, -1},
+//                         {-1, -1,  0,  0, 0,  0, 0,  0, 0,  0,  0, -1, -1},
+//                         {-1, -1,  0, -1, -1, -1, 0, -1, 0, -1,  0, -1, -1},
+//                         { 0,  0,  0,  -1, 0,  0, 0,  0, 0,  0,  0,  0,  0},
+//                         {-1, -1,  -1, -1, -1, -1, -1, -1, -1, -1,  0, -1, -1},
+//                         { 0,  0,  0,  0, 0,  1, 1,  0, 0,  -1,  0,  0,  0},
+//                         {-1, -1,  0, -1, -1, -1, 1, -1, 0, -1,  0, -1, -1},
+//                         { 0,  0,  0,  -1, 0,  1, 1,  0, 0,  0,  0,  1,  0},
+//                         {-1, -1,  0, -1, 0, -1,1, -1, 0, -1,  0, -1, -1},
+//                         {-1, -1,  0,  -1, 0,  0, 0,  0, 0,  0,  0, -1, -1},
+//                         {-1, -1, -1, -1, 0, -1, 0, -1, 0, -1, -1, -1, -1},
+//                         {-1, -1, -1, -1, 0, -1, 0, -1, 0, -1, -1, -1, -1}
+// }};
+
 struct Maze maze = {.grid = {
                         {-1, -1, -1, -1, 0, -1, 0, -1, 0, -1, -1, -1, -1},
                         {-1, -1, -1, -1, 0, -1, 0, -1, 0, -1, -1, -1, -1},
                         {-1, -1,  0,  0, 0,  0, 0,  0, 0,  0,  0, -1, -1},
-                        {-1, -1,  0, -1, -1, -1, 0, -1, 0, -1,  0, -1, -1},
-                        { 0,  0,  0,  -1, 0,  0, 0,  0, 0,  0,  0,  0,  0},
-                        {-1, -1,  -1, -1, -1, -1, -1, -1, -1, -1,  0, -1, -1},
-                        { 0,  0,  0,  0, 0,  1, 1,  0, 0,  -1,  0,  0,  0},
-                        {-1, -1,  0, -1, -1, -1, 1, -1, 0, -1,  0, -1, -1},
-                        { 0,  0,  0,  -1, 0,  1, 1,  0, 0,  0,  0,  1,  0},
-                        {-1, -1,  0, -1, 0, -1,1, -1, 0, -1,  0, -1, -1},
-                        {-1, -1,  0,  -1, 0,  0, 0,  0, 0,  0,  0, -1, -1},
+                        {-1, -1,  0, -1, 0, -1, 0, -1, 0, -1,  0, -1, -1},
+                        { 0,  0,  0,  0, 0,  0, 0,  0, 0,  0,  0,  0,  0},
+                        {-1, -1,  0, -1, 0, -1, 0, -1, 0, -1,  0, -1, -1},
+                        { 0,  0,  0,  0, 0,  0, 0,  0, 0,  0,  0,  0,  0},
+                        {-1, -1,  0, -1, 0, -1, 0, -1, 0, -1,  0, -1, -1},
+                        { 0,  0,  0,  0, 0,  0, 0,  0, 0,  0,  0,  0,  0},
+                        {-1, -1,  0, -1, 0, -1,0, -1, 0, -1,  0, -1, -1},
+                        {-1, -1,  0,  0, 0,  0, 0,  0, 0,  0,  0, -1, -1},
                         {-1, -1, -1, -1, 0, -1, 0, -1, 0, -1, -1, -1, -1},
                         {-1, -1, -1, -1, 0, -1, 0, -1, 0, -1, -1, -1, -1}
 }};
@@ -76,22 +110,45 @@ sfConvexShape* routeRects[13][13][5];
 //sfVertexArray* rects[13][13][3];
 
 
+    HANDLE hSerial;
+        char byteBuffer[BUFSIZ + 1];
 
 int main(void)
 {
+        //SERIAL STUFF
+
+
+    hSerial = CreateFile(COMPORT,
+        GENERIC_READ | GENERIC_WRITE,
+        0,
+        0,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        0
+    );
+
+            COMMTIMEOUTS timeouts = {0};
+timeouts.ReadTotalTimeoutConstant = 1;  // wacht max 100ms
+timeouts.ReadTotalTimeoutMultiplier = 0;
+SetCommTimeouts(hSerial, &timeouts);
+
+
+
     getuserinput();
     const sfVideoMode mode   = {{SCREENWIDTH, SCREENHEIGHT}, 32};
     sfRenderWindow*   window = sfRenderWindow_create(mode, "SFML window", sfResize | sfClose, sfWindowed, NULL);
     if (!window) return EXIT_FAILURE;
-    sfRenderWindow_setFramerateLimit(window, 60);
+    sfRenderWindow_setFramerateLimit(window, 20);
 
 
     setupmazegui();
-    xpos = 2;
-    ypos = 2;
-    findpath(10, 10);
+    xpos = 4;
+    ypos = 11;
+    robotdirection=0;
     sfRenderWindow_display(window);
-
+    maze = filtermaze(maze);
+    int currentstation = 0;
+    int waitingforresponse = 0;
     sfEvent event;
     while (sfRenderWindow_isOpen(window))
     {
@@ -103,17 +160,39 @@ int main(void)
         if(error){ printf("ERROR OCCURED TERMINATING.\n"); break;
         }
 
-        if(operatingmode==3){
-            static int stationindex = 0;
-            if(stationindex<MAXAMOUNTSTATIONS&&stations[stationindex]!=0){
-                findpath(stations[stationindex]%13, stations[stationindex]/13);
-                stationindex++;
+        if(operatingmode==1){
+            if(xpos==path[pathendpoint][0]&&ypos==path[pathendpoint][1]&&pathendpoint!=0){
+                currentstation++;
+                printf("STATIONREACHED");
             }
+
+            if(xpos==path[pathendpoint][0]&&ypos==path[pathendpoint][1]||pathendpoint==0){
+                printf("findpath");
+                findpath(getstationx(stations[currentstation]),getstationy(stations[currentstation]));
+                nextpathnumber=1;
+                printf("pathfound");
+
+
+            }
+                if(waitingforresponse==0){
+                move(path[nextpathnumber][0]-xpos,path[nextpathnumber][1]-ypos);
+                waitingforresponse = 1;
+                }else{
+                    if (readByte(hSerial, byteBuffer) == 1) {
+                        checkresponse();
+                        waitingforresponse=0;
+                    }
+                }
+        }
+
+        if(operatingmode==3){
+                mazeRotationAngle+=1.0f;
+                if(mazeRotationAngle>360.0f) mazeRotationAngle-=360.0f; 
         }
 
 
-        mazeRotationAngle+=1.0f;
-        if(mazeRotationAngle>360.0f) mazeRotationAngle-=360.0f; 
+                        mazeRotationAngle+=1.0f;
+                if(mazeRotationAngle>360.0f) mazeRotationAngle-=360.0f; 
         updatemazegui();
         sfRenderWindow_clear(window, sfBlack);
         rendermaze(window);
@@ -124,6 +203,142 @@ int main(void)
     sfRenderWindow_destroy(window);
     return EXIT_SUCCESS;
 }
+void move(int xdir,int ydir){
+int nextstepdirection;
+if(xdir==0&&ydir==-1){
+    nextstepdirection=0;
+}else if(xdir==1&&ydir==0){
+    nextstepdirection=1;
+}else if(xdir==0&&ydir==1){
+    nextstepdirection=2;
+}else{
+    nextstepdirection=3;
+}
+
+ if(robotdirection>nextstepdirection){
+    nextstepdirection+=4;
+ }
+
+
+ if(nextstepdirection-robotdirection==3){
+    byteBuffer[0]='L';
+
+ }else if(nextstepdirection-robotdirection==2){
+    byteBuffer[0]='L';
+ }else if(nextstepdirection-robotdirection==1){
+    byteBuffer[0]='R';
+ }else{
+    byteBuffer[0]='F';
+ }
+ transmittedByte=byteBuffer[0];
+     writeByte(hSerial,byteBuffer);
+}
+
+
+void checkresponse(){
+if(transmittedByte=='L'){
+        robotdirection--;
+        directionCheck();
+    if(byteBuffer[0]=='O'){
+    }else if(byteBuffer[0]=='D'){
+        if(robotdirection==0){
+        ypos--;
+        maze.grid[xpos][ypos]=-1;
+        ypos++;
+        }else if(robotdirection==1){
+        xpos++;
+        maze.grid[xpos][ypos]=-1;
+        xpos--;
+        }if(robotdirection==2){
+        ypos++;
+        maze.grid[xpos][ypos]=-1;
+        ypos--;
+        }if(robotdirection==3){
+        xpos--;
+        maze.grid[xpos][ypos]=-1;
+        xpos++;
+        }
+        pathendpoint=0;
+        printf("obstacle");
+    }
+}
+
+if(transmittedByte=='R'){
+            robotdirection++;
+        directionCheck();
+    if(byteBuffer[0]=='O'){
+
+    }else if(byteBuffer[0]=='D'){
+        if(robotdirection==0){
+        ypos--;
+        maze.grid[xpos][ypos]=-1;
+        ypos++;
+        }else if(robotdirection==1){
+        xpos++;
+        maze.grid[xpos][ypos]=-1;
+        xpos--;
+        }if(robotdirection==2){
+        ypos++;
+        maze.grid[xpos][ypos]=-1;
+        ypos--;
+        }if(robotdirection==3){
+        xpos--;
+        maze.grid[xpos][ypos]=-1;
+        xpos++;
+        }
+        pathendpoint=0;
+    }
+}
+
+if(transmittedByte=='F'){
+    if(byteBuffer[0]=='C'){
+        if(robotdirection==0){
+        ypos--;
+        }else if(robotdirection==1){
+        xpos++;
+        }if(robotdirection==2){
+        ypos++;
+        }if(robotdirection==3){
+        xpos--;
+        }  
+        nextpathnumber++;
+    }else if(byteBuffer[0]=='D'){
+        if(robotdirection==0){
+        ypos--;
+        ypos--;
+        maze.grid[xpos][ypos]=-1;
+        ypos++;
+        }else if(robotdirection==1){
+        xpos++;
+        xpos++;
+        maze.grid[xpos][ypos]=-1;
+        xpos--;
+        }if(robotdirection==2){
+        ypos++;
+        ypos++;
+        maze.grid[xpos][ypos]=-1;
+        ypos--;
+        }if(robotdirection==3){
+        xpos--;
+        xpos--;
+        maze.grid[xpos][ypos]=-1;
+        xpos++;
+        }
+        pathendpoint=0;
+    }
+}
+
+}
+
+void directionCheck(){
+    if(robotdirection==4){
+        robotdirection=0;
+    }
+    if(robotdirection==-1){
+        robotdirection=3;
+    }
+}
+
 
 void getuserinput(){
     printf(GRN"________HIGHRESROBOTCONTROLLER_________\n\n"WHT);
@@ -160,6 +375,7 @@ void getuserinput(){
                     printf("%i-", stations[i]);
                 }
                 printf("\n");
+                //filtermaze(maze);
                 operatingmode = 1;
                 break;
           }
@@ -178,32 +394,35 @@ void getuserinput(){
 
 
 void findpath(int xend, int yend){
+    printf("filtermaze");
     struct Maze shortestpathmaze = filtermaze(maze);
-    if(shortestpathmaze.grid[xend][yend] == -1){
+    printf("mazefiltered");
+    if(shortestpathmaze.grid[xend][yend] != 0){
         printf("ERROR: pathendpoint is a wall");
         return;
     }
-    shortestpathmaze.grid[yend][xend] = 1;
+    shortestpathmaze.grid[xend][yend] = 1;
     int i, j, k;
     if(shortestpathmaze.grid[xpos][ypos] == -1){
         printf("ERROR: pathstartpoint is a wall");
         return;
     }
+    printf("leestarting");
     for(k=1;(shortestpathmaze.grid[xpos][ypos]==0); k++){
         for(i=0; i<13; i++){
             for(j=0; j<13; j++){
                 if(shortestpathmaze.grid[i][j] == k){
-                    if(shortestpathmaze.grid[i+1][j] == 0){
-                        shortestpathmaze.grid[i+1][j] = k+1;
+                    if(shortestpathmaze.grid[i==12?12:i+1][j] == 0){
+                        shortestpathmaze.grid[i==12?12:i+1][j] = k+1;
                     }
-                    if(shortestpathmaze.grid[i-1][j] == 0){
-                        shortestpathmaze.grid[i-1][j] = k+1;
+                    if(shortestpathmaze.grid[i==0?0:i-1][j] == 0){
+                        shortestpathmaze.grid[i==0?0:i-1][j] = k+1;
                     }
-                    if(shortestpathmaze.grid[i][j+1] == 0){
-                        shortestpathmaze.grid[i][j+1] = k+1;
+                    if(shortestpathmaze.grid[i][j==12?12:j+1] == 0){
+                        shortestpathmaze.grid[i][j==12?12:j+1] = k+1;
                     }
-                    if(shortestpathmaze.grid[i][j-1] == 0){
-                        shortestpathmaze.grid[i][j-1] = k+1;
+                    if(shortestpathmaze.grid[i][j==0?0:j-1] == 0){
+                        shortestpathmaze.grid[i][j==0?0:j-1] = k+1;
                     }
                 }
             }
@@ -220,7 +439,7 @@ void findpath(int xend, int yend){
     path[0][1] = ypos;
     maze = filtermaze(maze);
     maze.grid[xpostemp][ypostemp] = 1;
-    for(k=1; k<PATHMAXLENGTH&&(path[k][0]!=xend||path[k][1]!=yend); k++){
+    for(k=1; k<PATHMAXLENGTH&&(path[k-1][0]!=xend||path[k-1][1]!=yend); k++){
         if(shortestpathmaze.grid[xpostemp+1][ypostemp] == shortestpathmaze.grid[xpostemp][ypostemp]-1){
             xpostemp++;
             path[k][0] = xpostemp;
@@ -239,7 +458,10 @@ void findpath(int xend, int yend){
             path[k][1] = ypostemp;
         }
         maze.grid[xpostemp][ypostemp] = 1;
+        //printf("\nx==%i y==%i",xpostemp, ypostemp);
     }    
+    pathendpoint = k-1;
+    printf(GRN"pathendpoint == %i"WHT,pathendpoint);
 }
 
 struct Maze filtermaze(struct Maze maze){
@@ -264,6 +486,45 @@ void clearpath(){
         path[k][1] = 0;
     }
 }
+
+int getstationx(int stationnumber){
+    if(stationnumber<1||stationnumber>12){
+        printf("ERROR STATION NUMBER = %i",stationnumber);
+    }
+    switch(stationnumber){
+        case 12: return 1;
+        case 11: return 1;
+        case 10: return  1;
+        case 9: return 4;
+        case 8: return 6;
+        case 7: return 8;
+        case 6: return 11;
+        case 5: return 11;
+        case 4: return 11;
+        case 3: return 8;
+        case 2: return 6;
+        case 1: return 4;
+    }
+}
+int getstationy(int stationnumber){
+    printf("ERROR STATION NUMBER = %i",stationnumber);
+    switch(stationnumber){
+        case 12: return 8;
+        case 11: return 6;
+        case 10: return 4;
+        case 9: return 1;
+        case 8: return 1;
+        case 7: return 1;
+        case 6: return 4;
+        case 5: return 6;
+        case 4: return 8;
+        case 3: return 11;
+        case 2: return 11;
+        case 1: return 11;
+    }
+}
+
+
 
 
 
@@ -343,6 +604,49 @@ for(i=0; i<13; i++){
         sfConvexShape_setPoint(rects[i][j][2], 3, {0.0f,mazeScale*mazeHeight*mazeTiltRatio});
         sfConvexShape_setPoint(rects[i][j][2], 2, {-1*side2.x,-1*side2.y+mazeScale*mazeHeight*mazeTiltRatio});
         //Colors
+        if(i==xpos&&j==ypos){
+            //PLAYER 3D
+        pos = transformpos((float)i, (float)j);
+        side1 = transformrect(0,0);
+        side2 = transformrect(1,0);
+
+        //Roof
+        sfConvexShape_setPosition(rects[i][j][0], pos);
+        sfConvexShape_setPoint(rects[i][j][0], 0, {0.0f,0.0f-mazeScale*mazeHeight*mazeTiltRatio});
+        sfConvexShape_setPoint(rects[i][j][0], 1, {side1.x,side1.y-mazeScale*mazeHeight*mazeTiltRatio});
+        sfConvexShape_setPoint(rects[i][j][0], 3, {side2.x,side2.y-mazeScale*mazeHeight*mazeTiltRatio});
+        sfConvexShape_setPoint(rects[i][j][0], 2, {side1.x+side2.x,side1.y+side2.y-mazeScale*mazeHeight*mazeTiltRatio});
+
+        //Walls coordinates depend on rotation angle.
+        if(mazeRotationAngle>270.0f){
+            pos = transformpos((float)(i+1), (float)j);
+        }else if(mazeRotationAngle>180.0f){
+            pos = transformpos((float)i, (float)j);
+        }else if(mazeRotationAngle>90.0f){
+            pos = transformpos((float)i, (float)(j+1));
+        }else{
+            pos = transformpos((float)(i+1), (float)(j+1));
+        }
+        side1 = transformrect(0,1);
+        side2 = transformrect(1,1);
+
+        //Wall 1
+        sfConvexShape_setPosition(rects[i][j][1], pos);
+        sfConvexShape_setPoint(rects[i][j][1], 0, {0.0f,0.0f-mazeScale*mazeHeight*mazeTiltRatio});
+        sfConvexShape_setPoint(rects[i][j][1], 1, {-1*side1.x,-1*side1.y-mazeScale*mazeHeight*mazeTiltRatio});
+        sfConvexShape_setPoint(rects[i][j][1], 3, {0.0f,mazeScale*mazeHeight*mazeTiltRatio});
+        sfConvexShape_setPoint(rects[i][j][1], 2, {-1*side1.x,-1*side1.y+mazeScale*mazeHeight*mazeTiltRatio});
+        //Wall2
+        sfConvexShape_setPosition(rects[i][j][2], pos);
+        sfConvexShape_setPoint(rects[i][j][2], 0, {0.0f,0.0f-mazeScale*mazeHeight*mazeTiltRatio});
+        sfConvexShape_setPoint(rects[i][j][2], 1, {-1*side2.x,-1*side2.y-mazeScale*mazeHeight*mazeTiltRatio});
+        sfConvexShape_setPoint(rects[i][j][2], 3, {0.0f,mazeScale*mazeHeight*mazeTiltRatio});
+        sfConvexShape_setPoint(rects[i][j][2], 2, {-1*side2.x,-1*side2.y+mazeScale*mazeHeight*mazeTiltRatio});
+            sfConvexShape_setFillColor(rects[i][j][0], (sfColor){255,255,240,255});
+            sfConvexShape_setFillColor(rects[i][j][1], (sfColor){255,255,230,255});
+            sfConvexShape_setFillColor(rects[i][j][2], (sfColor){255,255,210, 255});
+
+        }else{
         if(maze.grid[i][j] == -1){
             sfConvexShape_setFillColor(rects[i][j][0], (sfColor){255,0,100,255});
             sfConvexShape_setFillColor(rects[i][j][1], (sfColor){160,0,70,255});
@@ -388,7 +692,13 @@ for(i=0; i<13; i++){
             sfConvexShape_setPoint(routeRects[i][j][4], 1,(sfVector2f){side1.x*(-0.5f+0.5f*pathSize), side1.y*(-0.5f+0.5f*pathSize)});
             sfConvexShape_setPoint(routeRects[i][j][4], 3,(sfVector2f){side2.x*pathSize, side2.y*pathSize});
             sfConvexShape_setPoint(routeRects[i][j][4], 2,(sfVector2f){side2.x*pathSize+side1.x*(-0.5f+0.5f*pathSize), side2.y*pathSize+side1.y*(-0.5f+0.5f*pathSize)});
-            
+           
+            if(i==path[pathendpoint][0]&&j==path[pathendpoint][1]){
+                sfConvexShape_setFillColor(routeRects[i][j][0], (sfColor){0,255,255,255});
+            }else{
+                sfConvexShape_setFillColor(routeRects[i][j][0], (sfColor){0,220,0,255});
+            }
+
             if(maze.grid[i][j+1] == 1){
                 sfConvexShape_setFillColor(routeRects[i][j][1], (sfColor){0,255,0,255});
             }else{
@@ -415,6 +725,7 @@ for(i=0; i<13; i++){
 
 
     }
+}
 }
 }
 }
@@ -489,3 +800,103 @@ void rendermaze(sfRenderWindow* window){
         }
     }
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //SERIAL FUNCTIONS
+    //SERIAL functions
+
+void initSio(HANDLE hSerial) {
+
+    COMMTIMEOUTS timeouts = { 0 };
+    DCB dcbSerialParams = { 0 };
+
+    dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+
+    if (!GetCommState(hSerial, &dcbSerialParams)) {
+        //error getting state
+        printf("error getting state \n");
+    }
+
+    dcbSerialParams.BaudRate = BAUDRATE;
+    dcbSerialParams.ByteSize = 8;
+    dcbSerialParams.StopBits = ONESTOPBIT;
+    dcbSerialParams.Parity = NOPARITY;
+
+    if (!SetCommState(hSerial, &dcbSerialParams)) {
+        //error setting serial port state
+        printf("error setting state \n");
+    }
+
+    timeouts.ReadIntervalTimeout = 50;
+    timeouts.ReadTotalTimeoutConstant = 50;
+    timeouts.ReadTotalTimeoutMultiplier = 10;
+
+    timeouts.WriteTotalTimeoutConstant = 50;
+    timeouts.WriteTotalTimeoutMultiplier = 10;
+
+    if (!SetCommTimeouts(hSerial, &timeouts)) {
+        //error occureed. Inform user
+        printf("error setting timeout state \n");
+    }
+}
+
+//--------------------------------------------------------------
+// Function: readByte
+// Description: reads a single byte from the COM port into
+//              buffer buffRead
+//--------------------------------------------------------------
+int readByte(HANDLE hSerial, char* buffRead) {
+
+    DWORD dwBytesRead = 0;
+
+    if (!ReadFile(hSerial, buffRead, 1, &dwBytesRead, NULL))
+    {
+        printf("error reading byte from input buffer \n");
+    }
+    //NEW outputs read byte only if new byte is available
+    if (dwBytesRead == 1) {
+        printf("Byte received sv -> C: %c \n", buffRead[0]);
+    }
+    return(dwBytesRead);
+}
+
+//--------------------------------------------------------------
+// Function: writeByte
+// Description: writes a single byte stored in buffRead to
+//              the COM port 
+//--------------------------------------------------------------
+int writeByte(HANDLE hSerial, char* buffWrite) {
+
+    DWORD dwBytesWritten = 0;
+
+    if (!WriteFile(hSerial, buffWrite, 1, &dwBytesWritten, NULL))
+    {
+        printf("error writing byte to output buffer \n");
+    }
+    printf("Byte transmitted C -> SV: %c \n", buffWrite[0]);
+
+    return(0);
+}
